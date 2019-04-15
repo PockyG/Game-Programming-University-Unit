@@ -1,0 +1,9 @@
+
+*
+
+!.gitignore
+!*.cs
+
+!*/
+
+obj
