@@ -1,17 +1,12 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Assignment.Levels;
+using Assignment.UI;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using System;
 using RC_Framework;
+using System;
 
-//I asked my friend for an idea of a boss
-//big plane doesnt move covers most screen
-//shoots big  delayed lazers get bigger.
-//When killed splits into two different middle sized planes(same tex maybe dif color)
-//releases a bullet that travels to middle of screenish and then explodes into smaller bullets that rotate
-//when killed 3 smaller planes fly out towards the screen boundaries and explode into radius of bullets.
-
-namespace MT2
+namespace Assignment
 {
     /// <summary>
     /// This is the main type for your game.
@@ -20,29 +15,29 @@ namespace MT2
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-        public const int SCREEN_WIDTH = 800;
-        public const int SCREEN_HEIGHT = 600;
-
-        public static bool showbb = false;
-
-        public static Random random = new Random();
-
 
         //Statemanager
         RC_GameStateManager levelManager;
 
+        public static Game1 game1;
+
+        //Random
+        public static Random Random = new Random();
+
+        public const int SCREEN_WIDTH = 1280;
+        public const int SCREEN_HEIGHT = 800;
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+
             graphics.PreferredBackBufferHeight = SCREEN_HEIGHT;
             graphics.PreferredBackBufferWidth = SCREEN_WIDTH;
 
-            this.Window.Title = "mt2 wow";
 
 
-
+            this.Window.Title = "Assignment HypeReset";
         }
 
         /// <summary>
@@ -53,14 +48,9 @@ namespace MT2
         /// </summary>
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
 
-
-            //base initialize calls loadcontent
             base.Initialize();
-
-
-
+            game1 = this;
 
         }
 
@@ -74,28 +64,41 @@ namespace MT2
             spriteBatch = new SpriteBatch(GraphicsDevice);
             LineBatch.init(GraphicsDevice);
 
+            // TODO: use this.Content to load your game content here
             levelManager = new RC_GameStateManager();
-
-            levelManager.AddLevel(0, new SplashScreen());
+            levelManager.AddLevel(0, new TutorialLevel());
             levelManager.getLevel(0).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
             levelManager.getLevel(0).LoadContent();
-            levelManager.setLevel(0);
 
-            levelManager.AddLevel(1, new GameLevel1());
+
+            levelManager.AddLevel(1, new Level1());
             levelManager.getLevel(1).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
             levelManager.getLevel(1).LoadContent();
 
-            levelManager.AddLevel(2, new EndScreen());
+
+            levelManager.AddLevel(2, new Level2());
             levelManager.getLevel(2).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
             levelManager.getLevel(2).LoadContent();
 
-            levelManager.AddLevel(3, new Pause());
+            levelManager.AddLevel(3, new Level3());
             levelManager.getLevel(3).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
             levelManager.getLevel(3).LoadContent();
 
-            levelManager.AddLevel(4, new StartScreen());
+            levelManager.AddLevel(4, new Level4());
             levelManager.getLevel(4).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
             levelManager.getLevel(4).LoadContent();
+
+            levelManager.AddLevel(5, new Level5());
+            levelManager.getLevel(5).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
+            levelManager.getLevel(5).LoadContent();
+
+            levelManager.AddLevel(6, new MenuScreen());
+            levelManager.getLevel(6).InitializeLevel(GraphicsDevice, spriteBatch, Content, levelManager);
+            levelManager.getLevel(6).LoadContent();
+
+            levelManager.setLevel(6);
+
+
         }
 
         /// <summary>
@@ -114,20 +117,14 @@ namespace MT2
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            // TODO: Add your update logic here
+            
             InputManager.Instance.Update();
 
-            //inputs
-            if (InputManager.Instance.KeyPressed(Keys.B))
-            {
-                Game1.showbb = !Game1.showbb;
-            }
-            if (InputManager.Instance.KeyPressed(Keys.Escape))
-            {
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
-            }
 
             levelManager.getCurrentLevel().Update(gameTime);
+            // TODO: Add your update logic here
 
             base.Update(gameTime);
         }
@@ -138,16 +135,12 @@ namespace MT2
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.DeepSkyBlue);
+            GraphicsDevice.Clear(Color.CornflowerBlue);
 
+            // TODO: Add your drawing code here
             levelManager.getCurrentLevel().Draw(gameTime);
 
             base.Draw(gameTime);
         }
-
-
-     
-
-
     }
 }

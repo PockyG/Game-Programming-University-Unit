@@ -163,7 +163,6 @@ namespace MT2
             texForeground = Content.Load<Texture2D>("foreground");
 
 
-            textEnter = new TextRenderable("PRESS ENTER TO START", new Vector2(Game1.SCREEN_WIDTH / 2 - 100, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
 
 
 
@@ -188,8 +187,17 @@ namespace MT2
             spriteBatch.Draw(texBackground, new Rectangle(0, 0, Game1.SCREEN_WIDTH, Game1.SCREEN_HEIGHT), Color.White);
             spriteBatch.Draw(texForeground, new Rectangle(0, 0, Game1.SCREEN_WIDTH, Game1.SCREEN_HEIGHT), Color.White);
 
+
+            
+
+
+
             if ((int)timer % 2 == 0)
             {
+                textEnter = new TextRenderable("PRESS ENTER TO START", new Vector2(Game1.SCREEN_WIDTH / 2 - 100, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
+                textEnter.Draw(spriteBatch);
+                textEnter = new TextRenderable("PRESS ESCAPE TO QUIT", new Vector2(Game1.SCREEN_WIDTH / 2 - 100, Game1.SCREEN_HEIGHT / 2 + 40), spriteFont, Color.Red);
+                
                 textEnter.Draw(spriteBatch);
             }
 
@@ -213,7 +221,9 @@ namespace MT2
         Player player;
         Texture2D playerTex;
 
+        //info to be passed between new levels
         public int level = 1;
+        public int score;
 
 
         //particles?
@@ -245,6 +255,8 @@ namespace MT2
         //set spawninterval to 0.01f to see effects of "spritelist" (NOT A LIST) its a 200 default array pretending to be a list.  original value = 2;
         float timer = 0;
         float spawnInterval = 2;
+        int enemyCounter = 0;
+        public int enemyToSpawn;
 
 
         //0 - start of level
@@ -274,7 +286,7 @@ namespace MT2
         TextRenderable textStartGame;
         TextRenderable textVarious;
         TextRenderable textLevel;
-        int score;
+        
         SpriteFont spriteFont;
 
         public List<Color> colorList;
@@ -348,24 +360,43 @@ namespace MT2
                 GameLevel1 lastGameLevel = gameStateManager.getLevel(fromLevelNum) as GameLevel1;
                 level = lastGameLevel.level + 1;
                 Console.WriteLine("LEVEL: " + level.ToString());
+                score = lastGameLevel.score;
+                enemyToSpawn = lastGameLevel.enemyToSpawn + 3;
+                
             }
             else
             {
                 level = 1;
+                score = 0;
+                enemyToSpawn = 10;
             }
 
+            enemyCounter = 0;
+            //initialize level texts
             textLevel = new TextRenderable("LEVEL: " + level.ToString(), new Vector2(20, 20), spriteFont, Color.Red);
+            textScore.text = "Score : " + score.ToString();
+
+            //initialize player for new level
             player = new Player(true, playerTex, 50, Game1.SCREEN_HEIGHT / 2 - 50);
             player.setWidthHeight(100, 100);
             player.setFlip(SpriteEffects.FlipHorizontally);
-            score = 0;
-            textScore.text = "Score : " + score.ToString();
+            
+            //initalize level state
             levelState = LEVELSTATE.LEVELSTART;
+
+            //initialize lists
             particleList = new SpriteList();
             enemyList = new SpriteList();
             playerBulletList = new SpriteList();
+
+            Console.WriteLine("enemyCounter" + enemyCounter);
+            Console.WriteLine("enemyToSpawn" + enemyToSpawn);
+
+
             scrollBack = new ScrollBackGround(texBackground, texBackground.Bounds, new Rectangle(0, 0, Game1.SCREEN_WIDTH, Game1.SCREEN_HEIGHT), -1 + player.playerBackgroundSpeed, 2);
             scrollFore = new ScrollBackGround(texForeground, texForeground.Bounds, new Rectangle(0, 0, Game1.SCREEN_WIDTH, Game1.SCREEN_HEIGHT), -2 + player.playerBackgroundSpeed, 2);
+
+            //initialize eneemy player targetting.
             EnemyEasy.player = player;
 
 
@@ -381,6 +412,8 @@ namespace MT2
             switch (levelState)
             {
                 case LEVELSTATE.LEVELSTART:
+
+
                     if (InputManager.Instance.KeyPressed(Keys.Enter))
                     {
                         levelState = LEVELSTATE.LEVELPLAY;
@@ -394,14 +427,12 @@ namespace MT2
                     //update player
                     player.Update(gameTime);
 
-                    if (score > 20)
-                    {
-                        levelState = LEVELSTATE.LEVELFINISH;
-                    }
+
                     //PAUSE
                     if (InputManager.Instance.KeyPressed(Keys.P))
                     {
                         gameStateManager.pushLevel(3);
+                        
                     }
 
 
@@ -434,10 +465,11 @@ namespace MT2
             }
 
             //Every 2 seconds, spawn an enemy randomly.
-            if (timer > spawnInterval)
+            if (timer > spawnInterval && enemyCounter < enemyToSpawn)
             {
                 AddEnemy(enemyList);
                 timer = 0;
+                enemyCounter++;
             }
 
             //update backgrounds
@@ -450,6 +482,10 @@ namespace MT2
             //Update/remove enemies
             enemyList.Update(gameTime);
             enemyList.removeIfOutside(new Rectangle(-100, -100, Game1.SCREEN_WIDTH + 200, Game1.SCREEN_HEIGHT + 200));
+            if(enemyList.countActive() == 0 && enemyCounter >= enemyToSpawn)
+            {
+                levelState = LEVELSTATE.LEVELFINISH;
+            }
 
             //update/remove bullets
             playerBulletList.moveDeltaX(5);
@@ -511,6 +547,7 @@ namespace MT2
                     {
                         currentEnemy.active = false;
                         currentEnemy.visible = false;
+                        
 
                         //add particle
                         AddExplosion((int)currentEnemy.getPosX(), (int)currentEnemy.getPosY());
@@ -518,10 +555,6 @@ namespace MT2
                         //add score
                         score += 10;
                         textScore.text = "Score : " + score.ToString();
-
-                        //TODO: EXPLOSION SOUND HERE
-
-
                     }
                     //DAMAGED ENEMY
                     else
@@ -533,13 +566,6 @@ namespace MT2
                     //REMOVE BULLET
                     currentBullet.active = false;
                     currentBullet.visible = false;
-
-
-
-
-
-
-
                 }
             }
 
@@ -581,6 +607,12 @@ namespace MT2
 
             switch (levelState)
             {
+                case LEVELSTATE.LEVELSTART:
+                    textVarious = new TextRenderable("LEVEL: " + level.ToString(), new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
+                    textVarious.Draw(spriteBatch);
+                    textVarious = new TextRenderable("Enemies: " + enemyToSpawn.ToString(), new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2 + 30), spriteFont, Color.Red);
+                    textVarious.Draw(spriteBatch);
+                    break;
                 case LEVELSTATE.LEVELGAMEOVER:
                     textVarious = new TextRenderable("GAME OVER", new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
                     textVarious.Draw(spriteBatch);
@@ -590,7 +622,7 @@ namespace MT2
                 case LEVELSTATE.LEVELFINISH:
                     textVarious = new TextRenderable("LEVEL FINISHED", new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
                     textVarious.Draw(spriteBatch);
-                    textVarious = new TextRenderable("Press Enter to go to Next Level.", new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2), spriteFont, Color.Red);
+                    textVarious = new TextRenderable("Press Enter to go to Next Level.", new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2 + 30), spriteFont, Color.Red);
                     textVarious.Draw(spriteBatch);
                     break;
             }

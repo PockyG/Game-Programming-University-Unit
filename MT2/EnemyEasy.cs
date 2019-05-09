@@ -13,10 +13,19 @@ namespace MT2
     {
         public static Player player;
         int pattern = 0;
+        int patternCount = 3;
+        
+
         public EnemyEasy(bool visibleZ, Texture2D texZ, float x, float y, int _pattern) : base( visibleZ,  texZ,  x,  y)
         {
             hitPoints = 3;
+            if(_pattern > patternCount)
+            {
+                _pattern = patternCount;
+            }
             pattern = _pattern;
+            varInt0 = 0; // GET HIT PARTICLE
+           
         }
 
         
@@ -40,6 +49,21 @@ namespace MT2
                     else
                     {
                         moveByDeltaY(1);
+                    }
+                    break;
+                case 2: // seek player with variance
+                    setPosX(getPosX() - moveSpeed);
+                    if(varInt2 == 0)
+                    {
+                        varInt2 = Game1.random.Next() % 4 + 1;
+                    }
+                    if (player.getPosY() + player.getHeight() / 2 < getPosY() + getHeight() / 2)
+                    {
+                        moveByDeltaY(-1 - varInt2);
+                    }
+                    else
+                    {
+                        moveByDeltaY(1 + varInt2);
                     }
                     break;
                 default:
