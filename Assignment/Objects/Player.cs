@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Assignment.UI;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using RC_Framework;
@@ -25,6 +26,7 @@ namespace Assignment.Objects
     public class Player : Sprite3
     {
         public static SpriteList sliceList;
+        
 
         public SpriteList platformList;
         public static Texture2D texPlayer;
@@ -32,6 +34,12 @@ namespace Assignment.Objects
         public static AbilityIcon iconDoubleJump;
         public static AbilityIcon iconDash;
         public static AbilityIcon iconSlice;
+
+      
+        public static SoundEffect soundJump;
+        public static SoundEffect soundDoubleJump;
+        public static SoundEffect soundDash;
+        public static SoundEffect soundGroundHit;
 
         public bool canDoubleJump = true;
         public bool canDash = true;
@@ -51,6 +59,10 @@ namespace Assignment.Objects
             }
             set
             {
+                if(isOnGround == false && value == true)
+                {
+                    soundGroundHit.Play();
+                }
                 isOnGround = value;
                 if (value == true)
                 {
@@ -59,6 +71,7 @@ namespace Assignment.Objects
                     canDash = true;
                     iconDash.isReady = true;
                     iconDoubleJump.isReady = true;
+                    
                 }
 
             }
@@ -89,7 +102,7 @@ namespace Assignment.Objects
         private float jumpVelocity = 450 * scaleEverything;
         private float doubleJumpVelocity = 500 * scaleEverything;
 
-        private float sliceCooldown = 0.5f;
+        private float sliceCooldown = 0.25f;
         private float sliceTimer = 0;
 
 
@@ -237,6 +250,7 @@ namespace Assignment.Objects
                         this.setPos(getPosX(), currentPlatform.getPosY() - this.getHeight());
                         velocity.Y = 0;
                         IsOnGround = true;
+                        
                     }
                     else if (velocity.Y < 0 && this.getPosY() >= currentPlatform.getPosY())
                     {
@@ -380,6 +394,7 @@ namespace Assignment.Objects
                     {
                         velocity.Y = -jumpVelocity;
                         IsOnGround = false;
+                        soundJump.Play();
                     }
                     else
                     {
@@ -388,6 +403,7 @@ namespace Assignment.Objects
                             velocity.Y = -doubleJumpVelocity;
                             canDoubleJump = false;
                             iconDoubleJump.isReady = false;
+                            soundDoubleJump.Play();
 
                         }
                     }
@@ -420,6 +436,7 @@ namespace Assignment.Objects
                             iconDash.isReady = false;
                             noGravityTimer = 0;
                             justDashed = true;
+                            soundDash.Play();
                         }
                         else if (InputManager.Instance.KeyDown(Keys.Left) || GamePad.GetState(PlayerIndex.One).ThumbSticks.Left.X < 0)
                         {
@@ -429,6 +446,7 @@ namespace Assignment.Objects
                             iconDash.isReady = false;
                             noGravityTimer = 0;
                             justDashed = true;
+                            soundDash.Play();
                         }
 
 
@@ -463,6 +481,7 @@ namespace Assignment.Objects
             base.Draw(sb);
             LineBatch.drawLineRectangle(sb, new Rectangle((int)this.getPos().X + (int)this.getWidth() / 2 - 1, (int)this.getPos().Y + (int)this.getHeight()/2 - 1,3, 3), Color.Blue);
 
+            
 
 
             if (isDrawbb)
@@ -483,6 +502,7 @@ namespace Assignment.Objects
             canSlice = false;
             iconSlice.isReady = false;
             sliceTimer = 0;
+
         }
     }
 }

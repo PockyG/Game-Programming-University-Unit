@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Assignment.Objects;
 using Assignment.UI;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -66,12 +67,24 @@ namespace Assignment.Levels
             newPlatform.setWidthHeight(800, 900);
             platformList.addSpriteReuse(newPlatform);
         }
+
+        public override void SpawnTargets()
+        {
+            enemyList = new SpriteList();
+            for (int i = 0; i < targetSpawnPositions.Count; i++)
+            {
+                TestEnemy currentTestEnemy = new TestEnemy(targetSpawnPositions[i]);
+                currentTestEnemy.canRespawn = true;
+                enemyList.addSprite(currentTestEnemy);
+            }
+        }
     }
 
     public class Level1 : BaseLevel
     {
         public override void LoadLevel()
         {
+            Game1.TimeScore = 0;
             base.LoadLevel();
             Sprite3 newPlatform;
             OutOfBounds = new Rectangle(0, 0, Game1.SCREEN_WIDTH, 1000);
@@ -352,8 +365,19 @@ namespace Assignment.Levels
 
         public override void NextLevel()
         {
-            isChallengeMode = true;
-            gameStateManager.setLevel(1);
+
+            if(isChallengeMode == true)
+            {
+                Game1.AddChallengeScore(Game1.TimeScore);
+            }
+            else
+            {
+                Game1.AddScore(Game1.TimeScore);
+            }
+            
+            gameStateManager.setLevel(6);
+
+            MenuScreen.UnlockChallengeMode();
 
         }
 
@@ -378,6 +402,13 @@ namespace Assignment.Levels
         public static Texture2D texMouseCursor;
         public static SpriteFont spriteFontFile;
 
+        public static SoundEffect soundDeath;
+        public static SoundEffect soundSlice;
+        public static SoundEffect soundRespawn;
+        public static SoundEffect soundSliceHit;
+        
+
+
         public static Texture2D texPlayerDoubleJump;
         public static Texture2D texPlayerDash;
         public static Texture2D texPlayerSlice;
@@ -395,7 +426,7 @@ namespace Assignment.Levels
         bool isPlayerAlive;
         protected List<Vector2> targetSpawnPositions = new List<Vector2>();
         protected GoalZone goal;
-
+        
 
         protected Camera2d cam = new Camera2d();
         protected Vector2 CamOriginalPosition = new Vector2(Game1.SCREEN_WIDTH / 2, Game1.SCREEN_HEIGHT / 2);
@@ -415,7 +446,7 @@ namespace Assignment.Levels
 
             texPlayerDoubleJump = Content.Load<Texture2D>("doublejump");
             texPlayerDash = Content.Load<Texture2D>("dash");
-            texPlayerSlice = Content.Load<Texture2D>("slice1");
+            texPlayerSlice = Content.Load<Texture2D>("slice2");
 
             Slice.pixel = texPixel;
             EnemyHitbox.texHitbox = texPixel;
@@ -476,13 +507,15 @@ namespace Assignment.Levels
             player.velocity = Vector2.Zero;
             player.acceleration = new Vector2(0, 1000f);
             SpawnTargets();
-            
+
             //play spawn animations
             //Player cant move for a second while respawning.
-            Task.Delay(1000).ContinueWith(t => player.SetCanPlayerMove(true));
+            
+            Task.Delay(500).ContinueWith(t => player.SetCanPlayerMove(true));
+            //Task.Delay(500).ContinueWith(t => soundRespawn.Play());
         }
 
-        public void SpawnTargets()
+        public virtual void SpawnTargets()
         {
             enemyList = new SpriteList();
             for (int i = 0; i < targetSpawnPositions.Count; i++)
@@ -517,10 +550,11 @@ namespace Assignment.Levels
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
+            Game1.TimeScore += deltaTime;
 
-
-            cam.Pos = new Vector2(cam.Pos.X, Game1.SCREEN_HEIGHT / 2);
+           cam.Pos = new Vector2(cam.Pos.X, Game1.SCREEN_HEIGHT / 2);
 
             if (InputManager.Instance.KeyDown(Keys.W))
             {
@@ -613,6 +647,7 @@ namespace Assignment.Levels
                     Slice newSlice = new Slice(player.getBoundingBoxMiddle().X - Slice.sliceWidth / 2, player.getBoundingBoxMiddle().Y);
                     sliceList.addSpriteReuse(newSlice);
                     player.Slice();
+                    soundSlice.Play();
                 }
 
             }
@@ -631,16 +666,9 @@ namespace Assignment.Levels
             player.Update(gameTime);
             sliceList.Update(gameTime);
             particleList.Update(gameTime);
-            //for(int i = 0; i < particleList.Count(); i++)
-            //{
-            //    particleList.getRenderable(i).active = false;
-            //}
             enemyList.Update(gameTime);
             platformList.Update(gameTime);
             goal.Update(gameTime);
-
-
-
 
             //GOAL CONDITION
             if (player.getBoundingBoxAA().Intersects(goal.rectGoalZone))
@@ -669,6 +697,8 @@ namespace Assignment.Levels
             //IF PLAYER IS OUT OF BOUNDS
             if (player.getPosX() < OutOfBounds.X || player.getPosX() > OutOfBounds.X + OutOfBounds.Width || player.getPosY() + player.getHeight() * 2 < OutOfBounds.Y || player.getPosY() > OutOfBounds.Y + OutOfBounds.Height)
             {
+                soundDeath.Play();
+                player.SetCanPlayerMove(false);
                 player.AbilityReset();
                 ResetPlayer();
             }
@@ -686,10 +716,10 @@ namespace Assignment.Levels
                 if (currentSprite.visible != true) continue;
                 if (currentSprite is Enemy == false) continue;
 
-                Enemy currentEnemy = currentSprite as Enemy;
+                TestEnemy currentEnemy = currentSprite as TestEnemy;
 
 
-
+               
 
                 //Get current slice to test.
                 //If not active, skip.
@@ -719,20 +749,7 @@ namespace Assignment.Levels
                                 {
 
 
-                                    //Console.WriteLine("COLLISION");
-                                    //Console.WriteLine("enemy" + currentEnemy.getActive());
-                                    // currentSlice.canHit = false;
-
-
-                                    ////Does the slice cover the whole length of hitbox?
-                                    //Console.WriteLine("SLICE MIDPOS: " + currentSlice.getBoundingBoxMiddle());
-                                    //Console.WriteLine("slice rectbb: " + currentSlice.getBB());
-                                    //Console.WriteLine("slice rectaa: " + currentSlice.getBoundingBoxAA());
-                                    //Console.WriteLine("middlepos hitbox: " + currentHitBox.getBoundingBoxMiddle());
-                                    //Console.WriteLine("hitbox rectbb: " + currentHitBox.getBB());
-                                    //Console.WriteLine("hitbox rectaa: " + currentHitBox.getBoundingBoxAA());
-                                    //Console.WriteLine("hitbox rect: " + currentHitBox.getWidth());
-                                    //Console.WriteLine("hitbox pos: " + currentHitBox.getPos());
+                                   
                                     float sliceWidth = currentSlice.getBB().Width;
                                     float sliceLeft = currentSlice.getBoundingBoxMiddle().X - sliceWidth / 2;
                                     float sliceRight = currentSlice.getBoundingBoxMiddle().X + sliceWidth / 2;
@@ -743,6 +760,7 @@ namespace Assignment.Levels
                                     if (sliceLeft <= hitboxLeft && sliceRight >= hitboxRight)
                                     {
                                         //Console.WriteLine("FULL CUT");
+                                        soundSliceHit.Play();
                                         SliceParticle topSlice;
                                         float scaleWidth = currentHitBox.getWidth() / currentEnemy.getTextureBase().Width;
                                         float scaleHeight = currentHitBox.getHeight() / currentEnemy.getTextureBase().Height;
@@ -766,7 +784,16 @@ namespace Assignment.Levels
                                         particleList.addReuse(bottomSlice);
                                         //Console.WriteLine("BOTTOMSLICE: " + bottomDest.ToString());
 
-                                        currentEnemy.setActive(false);
+                                        if (!currentEnemy.canRespawn)
+                                        {
+                                            currentEnemy.setActive(false);
+                                        }
+                                        else
+                                        {
+                                            currentEnemy.isDead = true;
+                                        }
+                                        
+                                        
                                         currentEnemy.setVisible(false);
 
                                         player.AbilityReset();
@@ -816,11 +843,13 @@ namespace Assignment.Levels
                 sliceList.drawInfo(spriteBatch, Color.Red, Color.Yellow);
                 player.drawBB(spriteBatch, Color.Red);
                 platformList.drawInfo(spriteBatch, Color.Red, Color.Yellow);
+                LineBatch.drawLineRectangle(spriteBatch, new Rectangle((int)PlayerSpawnPosition.X, (int)PlayerSpawnPosition.Y, 20, 20), Color.Black);
+                LineBatch.drawLineRectangle(spriteBatch, OutOfBounds, Color.Red);
             }
 
-            LineBatch.drawLineRectangle(spriteBatch, OutOfBounds, Color.Red);
+          
 
-            LineBatch.drawLineRectangle(spriteBatch, new Rectangle((int)PlayerSpawnPosition.X, (int)PlayerSpawnPosition.Y, 20, 20), Color.Black);
+            
 
             goal.Draw(spriteBatch);
             spriteBatch.End();
@@ -832,7 +861,8 @@ namespace Assignment.Levels
             abilityIconDash.Draw(spriteBatch);
             abilityIconSlice.Draw(spriteBatch);
 
-
+            TextRenderable score = new TextRenderable("SCORE: " + Game1.TimeScore.ToString(), new Vector2(100, 100), MenuScreen.menuFont, Color.Black);
+            score.Draw(spriteBatch);
             //spriteBatch.Draw(texMouseCursor, new Vector2(InputManager.Instance.GetMousePositionX(), InputManager.Instance.GetMousePositionY()), Color.White);
             spriteBatch.Draw(texMouseCursor, null, new Rectangle(InputManager.Instance.GetMousePositionX(), InputManager.Instance.GetMousePositionY(), 30, 30), null, null, 0, null, Color.White, SpriteEffects.FlipHorizontally, 0);
             spriteBatch.End();

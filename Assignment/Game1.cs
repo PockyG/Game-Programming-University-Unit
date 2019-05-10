@@ -1,6 +1,8 @@
 ﻿using Assignment.Levels;
+using Assignment.Objects;
 using Assignment.UI;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using RC_Framework;
@@ -27,6 +29,13 @@ namespace Assignment
         public const int SCREEN_WIDTH = 1280;
         public const int SCREEN_HEIGHT = 800;
 
+        public static float TimeScore = 0;
+
+        public static float[] Scores = new float[5];
+        public static float[] ChallengeScores = new float[5];
+
+        public bool toggleHelp = false;
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -51,7 +60,61 @@ namespace Assignment
 
             base.Initialize();
             game1 = this;
+            for (int i = 0; i < 5; i++)
+            {
+                Scores[i] = 0;
+                ChallengeScores[i] = 0;
+            }
 
+
+
+
+
+            }
+
+        public static void AddScore(float newTimeScore)
+        {
+            for(int i = 0; i < 5; i++)
+            {
+                if(Scores[i] == 0) {
+                    Scores[i] = newTimeScore;
+                    break;
+                }
+                if (Scores[i] > newTimeScore)
+                {
+                    //move everything down by one then assign.
+                    for (int j = 4; j >= i + 1; j--)
+                    {
+                        Scores[j] = Scores[j - 1];
+                    }
+
+                    Scores[i] = newTimeScore;
+                    break;
+                }
+            }
+        }
+
+        public static void AddChallengeScore(float newTimeScore)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (ChallengeScores[i] == 0)
+                {
+                    ChallengeScores[i] = newTimeScore;
+                    break;
+                }
+                if (ChallengeScores[i] > newTimeScore)
+                {
+                    //move everything down by one then assign.
+                    for (int j = 4; j >= i + 1; j--)
+                    {
+                        ChallengeScores[j] = ChallengeScores[j - 1];
+                    }
+
+                    ChallengeScores[i] = newTimeScore;
+                    break;
+                }
+            }
         }
 
         /// <summary>
@@ -98,9 +161,16 @@ namespace Assignment
 
             levelManager.setLevel(6);
 
+            Player.soundDash = Content.Load<SoundEffect>("sounds/Dash");
+            Player.soundJump = Content.Load<SoundEffect>("sounds/Jump");
+            Player.soundDoubleJump = Content.Load<SoundEffect>("sounds/DoubleJump");
 
+            BaseLevel.soundDeath = Content.Load<SoundEffect>("sounds/Death");
+            BaseLevel.soundSlice = Content.Load<SoundEffect>("sounds/Slice");
+            BaseLevel.soundRespawn = Content.Load<SoundEffect>("sounds/Respawn");
+            BaseLevel.soundSliceHit = Content.Load<SoundEffect>("sounds/SliceHit");
+            Player.soundGroundHit = Content.Load<SoundEffect>("sounds/GroundHit");
         }
-
         /// <summary>
         /// UnloadContent will be called once per game and is the place to unload
         /// game-specific content.
@@ -123,6 +193,11 @@ namespace Assignment
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            if (InputManager.Instance.KeyPressed(Keys.F1))
+            {
+                toggleHelp = !toggleHelp;
+            }
+
             levelManager.getCurrentLevel().Update(gameTime);
             // TODO: Add your update logic here
 
@@ -139,6 +214,16 @@ namespace Assignment
 
             // TODO: Add your drawing code here
             levelManager.getCurrentLevel().Draw(gameTime);
+
+            if (toggleHelp)
+            {
+                spriteBatch.Begin();
+                TextRenderable helpStuff = new TextRenderable("GAMEPAD: A to jump/select. B to dash. RB to slice.", new Vector2(100, 100), MenuScreen.menuFont, Color.Black);
+                helpStuff.Draw(spriteBatch);
+                helpStuff = new TextRenderable("KEYBOARD: Z to jump/select. C to dash. X to slice. ARROWS to move", new Vector2(100, 150), MenuScreen.menuFont, Color.Black);
+                helpStuff.Draw(spriteBatch);
+                spriteBatch.End();
+            }
 
             base.Draw(gameTime);
         }

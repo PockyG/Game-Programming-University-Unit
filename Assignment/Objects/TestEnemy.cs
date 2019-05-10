@@ -22,6 +22,11 @@ namespace Assignment.Objects
         private Vector2 hoverPointBottom;
         bool posDirection = true;
 
+        public bool canRespawn = false;
+        public float respawnAmount = 3;
+        private float respawnTimer = 0;
+        public bool isDead = false;
+
         public Vector2 Position
         {
             get { return getPos(); }
@@ -70,31 +75,48 @@ namespace Assignment.Objects
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            if (posDirection)
+            if(isDead && canRespawn)
             {
-                currentLerpTime += deltaTime;
-                if (currentLerpTime > lerpTime)
+                respawnTimer += deltaTime;
+
+                if(respawnTimer > respawnAmount)
                 {
-                    currentLerpTime = lerpTime;
-                    posDirection = false;
+                    isDead = false;
+                    respawnTimer = 0;
+                    active = true;
+                    visible = true;
                 }
             }
             else
             {
-                currentLerpTime -= deltaTime;
-                if (currentLerpTime < 0)
+                if (posDirection)
                 {
-                    currentLerpTime = 0;
-                    posDirection = true;
+                    currentLerpTime += deltaTime;
+                    if (currentLerpTime > lerpTime)
+                    {
+                        currentLerpTime = lerpTime;
+                        posDirection = false;
+                    }
                 }
+                else
+                {
+                    currentLerpTime -= deltaTime;
+                    if (currentLerpTime < 0)
+                    {
+                        currentLerpTime = 0;
+                        posDirection = true;
+                    }
+                }
+
+
+
+                float t = currentLerpTime / lerpTime;
+                t = t * t * (3f - 2f * t);
+
+                setPos(Vector2.Lerp(hoverPointTop, hoverPointBottom, t));
             }
 
-
-
-            float t = currentLerpTime / lerpTime;
-            t = t * t * (3f - 2f * t);
-
-            setPos(Vector2.Lerp(hoverPointTop, hoverPointBottom, t));
+           
 
 
 
